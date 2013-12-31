@@ -11,7 +11,7 @@
 
 @interface WYGesturesViewController () <WYPopoverControllerDelegate>
 {
-    WYPopoverController* popoverController;
+    WYPopoverController *popoverController;
 }
 
 @end
@@ -20,17 +20,19 @@
 
 - (IBAction)buttonTap:(id)sender
 {
-    UIView* view = (UIView *)sender;
+    UIView *button = (UIView *)sender;
 
     UINavigationController* contentViewController = [[UINavigationController alloc] initWithRootViewController:[self.storyboard instantiateViewControllerWithIdentifier:@"StadiumList"]];
     
     popoverController = [[WYPopoverController alloc] initWithContentViewController:contentViewController];
     popoverController.delegate = self;
     
-    [popoverController presentPopoverFromRect:view.bounds inView:view permittedArrowDirections:WYPopoverArrowDirectionAny animated:YES];
+    //[popoverController presentPopoverFromRect:button.bounds inView:button permittedArrowDirections:WYPopoverArrowDirectionAny animated:YES];
+    
+    [popoverController presentPopoverFromRect:CGRectZero inView:nil permittedArrowDirections:WYPopoverArrowDirectionNone animated:YES];
 }
 
-- (BOOL)popoverControllerShouldDismiss:(WYPopoverController *)aPopoverController
+- (BOOL)popoverControllerShouldDismissPopover:(WYPopoverController *)aPopoverController
 {
     return YES;
 }

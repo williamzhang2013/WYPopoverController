@@ -8,14 +8,16 @@
 #import "WYAllDirectionsViewController.h"
 #import "WYSettingsViewController.h"
 #import "WYAnotherViewController.h"
+#import "WYModalViewController.h"
 
 @interface WYAllDirectionsViewController () <WYPopoverControllerDelegate>
 {
-    WYPopoverController* settingsPopoverController;
     WYPopoverController* anotherPopoverController;
+    WYPopoverController* settingsPopoverController;
 }
 
-- (IBAction)showPopover:(id)sender;
+- (IBAction)open:(id)sender;
+- (void)close:(id)sender;
 
 @end
 
@@ -37,8 +39,13 @@
 {
     [super viewDidLoad];
     
-    UIImage* normal = [[UIImage imageNamed:@"button-normal"] stretchableImageWithLeftCapWidth:16 topCapHeight:0];
-    UIImage* highlighted = [[UIImage imageNamed:@"button-highlighted"] stretchableImageWithLeftCapWidth:16 topCapHeight:0];
+    if ([self respondsToSelector:@selector(setEdgesForExtendedLayout:)])
+    {
+        self.edgesForExtendedLayout = UIRectEdgeNone;
+    }
+    
+    UIImage *normal = [[UIImage imageNamed:@"button-normal"] stretchableImageWithLeftCapWidth:16 topCapHeight:0];
+    UIImage *highlighted = [[UIImage imageNamed:@"button-highlighted"] stretchableImageWithLeftCapWidth:16 topCapHeight:0];
     
     [topLeftButton setBackgroundImage:normal forState:UIControlStateNormal]; [topLeftButton setBackgroundImage:highlighted forState:UIControlStateHighlighted];
     [topButton setBackgroundImage:normal forState:UIControlStateNormal]; [topButton setBackgroundImage:highlighted forState:UIControlStateHighlighted];
@@ -51,11 +58,32 @@
     [bottomRightButton setBackgroundImage:normal forState:UIControlStateNormal]; [bottomRightButton setBackgroundImage:highlighted forState:UIControlStateHighlighted];
 }
 
-- (IBAction)showPopover:(id)sender
+- (IBAction)open:(id)sender
+{
+    [self showpopover:sender];
+}
+
+- (void)close:(id)sender
+{
+    [settingsPopoverController dismissPopoverAnimated:YES];
+    settingsPopoverController.delegate = nil;
+    settingsPopoverController = nil;
+}
+
+- (IBAction)showmodal:(id)sender
+{
+    WYModalViewController *modalViewController = [self.storyboard instantiateViewControllerWithIdentifier:@"WYModalViewController"];
+    
+    modalViewController.modalPresentationStyle = UIModalPresentationFormSheet;
+    
+    [self presentViewController:modalViewController animated:YES completion:NULL];
+}
+
+- (IBAction)showpopover:(id)sender
 {
     if (settingsPopoverController == nil)
     {
-        UIView* btn = (UIView*)sender;
+        UIView *btn = (UIView*)sender;
         
         WYSettingsViewController *settingsViewController = [self.storyboard instantiateViewControllerWithIdentifier:@"WYSettingsViewController"];
         
@@ -67,7 +95,7 @@
         }
         
         settingsViewController.title = @"Settings";
-        [settingsViewController.navigationItem setRightBarButtonItem:[[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemDone target:self action:@selector(done:)]];
+        [settingsViewController.navigationItem setRightBarButtonItem:[[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemDone target:self action:@selector(close:)]];
         
         settingsViewController.modalInPopover = NO;
         
@@ -77,12 +105,17 @@
         settingsPopoverController.delegate = self;
         settingsPopoverController.passthroughViews = @[btn];
         settingsPopoverController.popoverLayoutMargins = UIEdgeInsetsMake(10, 10, 10, 10);
-        settingsPopoverController.wantsDefaultContentAppearance = YES;
-        [settingsPopoverController presentPopoverFromRect:btn.bounds inView:btn permittedArrowDirections:WYPopoverArrowDirectionAny animated:YES];
+        settingsPopoverController.wantsDefaultContentAppearance = NO;
+        
+        [settingsPopoverController presentPopoverFromRect:btn.bounds
+                                                   inView:btn
+                                 permittedArrowDirections:WYPopoverArrowDirectionAny
+                                                 animated:YES
+                                                  options:WYPopoverAnimationOptionFadeWithScale];
     }
     else
     {
-        [self done:nil];
+        [self close:nil];
     }
 }
 
@@ -96,33 +129,24 @@
     }
 }
 
-#pragma mark - Selectors
-
-- (void)done:(id)sender
-{
-    [settingsPopoverController dismissPopoverAnimated:YES];
-    settingsPopoverController.delegate = nil;
-    settingsPopoverController = nil;
-}
-
 #pragma mark - WYPopoverControllerDelegate
 
-- (BOOL)popoverControllerShouldDismiss:(WYPopoverController *)controller
+- (BOOL)popoverControllerShouldDismissPopover:(WYPopoverController *)controller
 {
     return YES;
 }
 
-- (void)popoverControllerDidDismiss:(WYPopoverController *)controller
+- (void)popoverControllerDidDismissPopover:(WYPopoverController *)controller
 {
-    if (controller == settingsPopoverController)
-    {
-        settingsPopoverController.delegate = nil;
-        settingsPopoverController = nil;
-    }
-    else if (controller == anotherPopoverController)
+    if (controller == anotherPopoverController)
     {
         anotherPopoverController.delegate = nil;
         anotherPopoverController = nil;
+    }
+    else if (controller == settingsPopoverController)
+    {
+        settingsPopoverController.delegate = nil;
+        settingsPopoverController = nil;
     }
 }
 
@@ -148,6 +172,15 @@
 - (UIInterfaceOrientation)preferredInterfaceOrientationForPresentation
 {
     return UIInterfaceOrientationPortrait;
+}
+
+- (void)willRotateToInterfaceOrientation:(UIInterfaceOrientation)toInterfaceOrientation duration:(NSTimeInterval)duration
+{
+    [UIView animateWithDuration:duration animations:^{
+        CGRect frame = self.bottomRightButton.frame;
+        frame.origin.y = (UIInterfaceOrientationIsPortrait(toInterfaceOrientation) ? self.bottomLeftButton.frame.origin.y : frame.origin.y - frame.size.height * 1.25f);
+        self.bottomRightButton.frame = frame;
+    }];
 }
 
 #pragma mark - Memory Management
